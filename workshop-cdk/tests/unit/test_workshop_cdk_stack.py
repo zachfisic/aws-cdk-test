@@ -77,3 +77,21 @@ def test_dynamodb_with_encryption():
             "SSEEnabled": True,
         },
     })
+
+
+# Create a test to validate read_capacity input.
+def test_dynamodb_raises():
+    stack = Stack()
+    with pytest.raises(Exception):
+        HitCounter(
+            stack,
+            "HitCounter",
+            downstream=_lambda.Function(
+                stack,
+                "TestFunction",
+                runtime=_lambda.Runtime.NODEJS_14_X,
+                handler='hello.handler',
+                code=_lambda.Code.from_asset('lambda')
+            ),
+            read_capacity=1,
+        )
