@@ -32,3 +32,36 @@ class WorkshopPipelineStack(Stack):
                 ]
             ),
         )
+
+        # Import and create an instance of the WorkshopPipelineStage. Later, we might instantiate this stage multiple times
+        # (e.g. a separate development/test deployment).
+        deploy = WorkshopPipelineStage(self, "Deploy")
+
+        # Add the stage to our pipeline.
+        # A Stage in a CDK pipeline represents a set of one or more CDK Stacks that should be deployed together, to a particular environment.
+        deploy_stage = pipeline.add_stage(deploy)
+
+        # Add post-deployment steps via deployStage.AddPost(...) from CDK Pipelines.
+        # We add two actions to our deployment stage: to test our TableViewer endpoint and our APIGateway endpoint, respectively.
+        deploy_stage.add_post(
+            pipelines.ShellStep(
+                "TestViewerEndpoint",
+                env_from_cfn_outputs={
+                    "ENDPOINT_URL": deploy.hc_viewer_url # exposed from `cfn_output` of our deploy stage
+                },
+                commands=["curl -Ssf $ENDPOINT_URL"],
+            )
+        )
+        deploy_stage.add_post(
+            pipelines.ShellStep(
+                "TestAPIGatewayEndpoint",
+                env_from_cfn_outputs={
+                    "ENDPOINT_URL": deploy.hc_endpoint # exposed from `cfn_output` of our deploy stage
+                },
+                commands=[
+                    "curl -Ssf $ENDPOINT_URL",
+                    "curl -Ssf $ENDPOINT_URL/hello",
+                    "curl -Ssf $ENDPOINT_URL/test",
+                ],
+            )
+        )
